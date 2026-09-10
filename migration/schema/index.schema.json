@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/claude-migration/index.schema.json",
+  "title": "Claude account migration index",
+  "type": "object",
+  "required": [
+    "schema_version", "created_utc", "last_updated_utc", "migration_status",
+    "completion_confirmed_by_user", "counts", "batches", "conversations",
+    "projects", "prompts", "files", "artifacts", "decisions", "open_items",
+    "issues", "secrets"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "generator": { "type": "string" },
+    "created_utc": { "type": "string" },
+    "last_updated_utc": { "type": "string" },
+    "migration_status": {
+      "enum": ["awaiting-first-upload", "in-progress", "complete"],
+      "description": "'complete' may only be set after the user explicitly confirms all batches have been provided."
+    },
+    "completion_confirmed_by_user": { "type": "boolean" },
+    "notes": { "type": "string" },
+    "counts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+    "id_scheme": { "type": "object" },
+    "confidence_values": { "type": "array", "items": { "type": "string" } },
+
+    "batches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "received_utc", "files_supplied", "files_processed", "files_failed"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^BATCH-[0-9]{2,}$" },
+          "received_utc": { "type": "string" },
+          "files_supplied": { "type": "integer", "minimum": 0 },
+          "files_processed": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "files_failed": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+
+    "conversations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "source_ref", "title", "date"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^CONV-[0-9]{4,}$" },
+          "source_ref": { "$ref": "#/$defs/source_ref" },
+          "source_conversation_id": { "type": ["string", "null"], "description": "The conversation's own ID in the export, verbatim. null when the export does not supply one." },
+          "title": { "type": "string" },
+          "title_assigned_during_migration": { "type": "boolean" },
+          "date": { "type": ["string", "null"], "description": "As stated in the source. null when the source states none; never inferred." },
+          "project_id": { "type": ["string", "null"] },
+          "topics": { "type": "array", "items": { "type": "string" } },
+          "decision_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "prompt_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "artifact_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "file_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "open_item_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "issue_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "secret_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "duplicate_of": { "type": ["string", "null"] },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "source_ref"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^PROJ-[0-9]{4,}$" },
+          "name": { "type": "string" },
+          "name_assigned_during_migration": { "type": "boolean" },
+          "doc": { "type": "string", "description": "Relative path to the project's markdown file." },
+          "source_ref": { "$ref": "#/$defs/source_ref" },
+          "instructions_verbatim": { "type": ["string", "null"] },
+          "conversation_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "decision_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "open_item_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "artifact_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "prompt_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+
+    "prompts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "text_original", "source_ref"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^PROMPT-[0-9]{4,}$" },
+          "name": { "type": "string" },
+          "text_original": { "type": "string", "description": "Verbatim. Never edited." },
+          "text_reformatted": { "type": ["string", "null"], "description": "Cosmetic changes only; null when none were made." },
+          "reformat_notes": { "type": ["string", "null"] },
+          "purpose": { "type": ["string", "null"] },
+          "variables": { "type": "array", "items": { "type": "string" } },
+          "source_ref": { "$ref": "#/$defs/source_ref" },
+          "conversation_id": { "type": ["string", "null"] },
+          "project_id": { "type": ["string", "null"] },
+          "duplicate_of": { "type": ["string", "null"] },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "filename", "completeness"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^FILE-[0-9]{4,}$" },
+          "filename": { "type": "string", "description": "Exactly as supplied." },
+          "stored_path": { "type": ["string", "null"] },
+          "media_type": { "type": ["string", "null"] },
+          "bytes": { "type": ["integer", "null"] },
+          "sha256": { "type": ["string", "null"] },
+          "completeness": { "enum": ["full", "partial", "referenced-only", "unreadable"] },
+          "batch_id": { "type": ["string", "null"] },
+          "referenced_in": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "issue_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "secret_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "duplicate_of": { "type": ["string", "null"] }
+        }
+      }
+    },
+
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "completeness", "source_ref"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^ART-[0-9]{4,}$" },
+          "name": { "type": "string" },
+          "artifact_type": { "type": ["string", "null"] },
+          "language": { "type": ["string", "null"] },
+          "purpose": { "type": ["string", "null"] },
+          "dependencies": { "type": "array", "items": { "type": "string" }, "description": "As stated in the source; not resolved or version-guessed." },
+          "completeness": { "enum": ["full", "partial", "referenced-only", "unreadable"] },
+          "truncation_note": { "type": ["string", "null"] },
+          "stored_path": { "type": ["string", "null"] },
+          "source_ref": { "$ref": "#/$defs/source_ref" },
+          "conversation_id": { "type": ["string", "null"] },
+          "project_id": { "type": ["string", "null"] },
+          "secret_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "duplicate_of": { "type": ["string", "null"] },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "text_verbatim", "source_ref"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^DEC-[0-9]{4,}$" },
+          "text_verbatim": { "type": "string" },
+          "summary": { "type": ["string", "null"] },
+          "status": { "enum": ["decided", "proposed", "superseded", "reversed", "unclear"] },
+          "date": { "type": ["string", "null"] },
+          "source_ref": { "$ref": "#/$defs/source_ref" },
+          "conversation_id": { "type": ["string", "null"] },
+          "project_id": { "type": ["string", "null"] },
+          "supersedes": { "type": ["string", "null"] },
+          "superseded_by": { "type": ["string", "null"] },
+          "conflicts_with": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+
+    "open_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "text", "type", "source_ref"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^TASK-[0-9]{4,}$" },
+          "text": { "type": "string" },
+          "type": { "enum": ["task", "commitment", "deadline", "follow-up", "open-question"] },
+          "owner_per_source": { "type": ["string", "null"] },
+          "due_verbatim": { "type": ["string", "null"], "description": "Exactly as stated, including relative phrasing." },
+          "due_resolved": { "type": ["string", "null"], "description": "Only when the source itself anchors the relative date; the anchor is named in due_resolution_basis." },
+          "due_resolution_basis": { "type": ["string", "null"] },
+          "status_in_source": { "type": ["string", "null"] },
+          "source_ref": { "$ref": "#/$defs/source_ref" },
+          "conversation_id": { "type": ["string", "null"] },
+          "project_id": { "type": ["string", "null"] },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "description"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^ISSUE-[0-9]{4,}$" },
+          "kind": { "enum": ["duplicate", "contradiction", "missing-file", "failed-parse", "truncated", "uncertain"] },
+          "description": { "type": "string" },
+          "related_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "version_a": { "type": ["string", "null"], "description": "Contradictions record both versions; neither is chosen." },
+          "version_a_source": { "type": ["string", "null"] },
+          "version_b": { "type": ["string", "null"] },
+          "version_b_source": { "type": ["string", "null"] },
+          "error": { "type": ["string", "null"] },
+          "resolution": { "type": ["string", "null"], "description": "Only set when the user resolves it; never resolved unilaterally." },
+          "needs_reupload": { "type": "boolean" }
+        }
+      }
+    },
+
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "location"],
+        "description": "Location and kind only. The secret value, or any fragment, prefix, length, or hash of it, is never stored.",
+        "properties": {
+          "id": { "type": "string", "pattern": "^SEC-[0-9]{4,}$" },
+          "kind": { "type": "string" },
+          "location": { "type": "string" },
+          "related_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "redacted_in_workspace": { "type": "boolean" },
+          "action": { "type": "string" }
+        },
+        "not": {
+          "anyOf": [
+            { "required": ["value"] },
+            { "required": ["secret"] },
+            { "required": ["hash"] },
+            { "required": ["prefix"] },
+            { "required": ["suffix"] },
+            { "required": ["length"] }
+          ]
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "id": { "type": "string", "pattern": "^(CONV|PROJ|PROMPT|FILE|ART|DEC|TASK|ISSUE|SEC|BATCH)-[0-9]{2,}$" },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "source_ref": {
+      "type": "object",
+      "required": ["file_id"],
+      "description": "Where the item came from. Unknown parts are omitted, not guessed.",
+      "properties": {
+        "file_id": { "type": "string" },
+        "conversation_id": { "type": ["string", "null"] },
+        "locator": { "type": ["string", "null"], "description": "Path or position inside the source, e.g. 'conversations.json > conv_id=abc123 > message 14'." },
+        "quote_is_verbatim": { "type": "boolean" }
+      }
+    }
+  }
+}
